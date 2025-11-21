@@ -6,10 +6,56 @@
 
 // --- 1. 全局配置与时间点映射 (Global Configuration and Time Point Mapping) ---
 const TIME_POINT_MAP = {
-  "T0": 0, "T1": 1, "T2": 6, "T3": 8, "T4": 11, "T5": 15,
-  "T6": 25, "T7": 32, "T8": 34, "T9": 39, "T10": 42, "T11": 52,
-  "T12": 59, "T13": 60, "T14": 61
+"T0": 0, "T1": 1, "T2": 2, "T3": 3, "T4": 4, "T5": 5,
+  "T6": 6, "T7": 7, "T8": 8, "T9": 9, "T10": 10, "T11": 11,
+  "T12": 12, "T13": 13, "T14": 14
 };
+<%_
+//
+import 'https://cdn.jsdelivr.net/gh/gh91-cmd/NTR.SANREN@main/ntr';
+// ==================================================
+// NTR剧情线全局变量设置 (Global Variable Center)
+// 规则：所有女性三值初始值 = (当前时间点索引) * 6
+// ==================================================
+
+// --- 1. 全局配置与时间点映射 (Global Configuration and Time Point Mapping) ---
+const TIME_POINT_MAP = {
+"T0": 0, "T1": 1, "T2": 2, "T3": 3, "T4": 4, "T5": 5,
+  "T6": 6, "T7": 7, "T8": 8, "T9": 9, "T10": 10, "T11": 11,
+  "T12": 12, "T13": 13, "T14": 14
+};
+//       1.1. 时间线天数映射
+const TIME_LINE_DAYS = {
+    "T0": 1,   // 起始事件 (第 1 天)
+    "T1": 1,   // T0发生后的第 1 天 (住院期间)，累计天数 1+1 = 2
+    "T2": 5,   // T1发生后的第 5 天 (刚出院)，累计天数 2+5 = 7
+    "T3": 2,   // T2发生后的第 2 天，累计天数 7+2 = 9
+    "T4": 3,   // T3发生后的第 3 天，累计天数 9+3 = 12
+    "T5": 4,   // T4发生后的第 4 天，累计天数 12+4 = 16
+    "T6": 10,  // T5发生后的第 10 天，累计天数 16+10 = 26
+    "T7": 7,   // T6发生后的第 7 天，累计天数 26+7 = 33
+    "T8": 2,   // T7发生后的第 2 天，累计天数 33+2 = 35
+    "T9": 5,   // T8发生后的第 5 天，累计天数 35+5 = 40
+    "T10": 3,  // T9发生后的第 3 天，累计天数 40+3 = 43
+    "T11": 10, // T10发生后的第 10 天，累计天数 43+10 = 53
+    "T12": 7,  // T11发生后的第 7 天，累计天数 53+7 = 60
+    "T13": 1,  // T12发生后的第 1 天，累计天数 60+1 = 61
+    "T14": 1   // T13_分支2 发生后的第 1 天，累计天数 61+1 = 62
+};
+
+// 计算当前事件T key为止，游戏进行到的总天数
+let cumulative_day_count = 0;
+for (let i = 0; i <= current_index; i++) {
+    const key = 'T' + i;
+    // T0是起始日，所以从1开始，后续事件的天数是相对天数
+    if (key === 'T0') {
+        cumulative_day_count = 1; // 游戏从第1天开始
+    } else if (TIME_LINE_DAYS[key]) {
+        cumulative_day_count += TIME_LINE_DAYS[key];
+    }
+}
+const current_game_day = cumulative_day_count;
+
 const BASE_INCREMENT = 6; // 每个事件增加的基础点数
 
 // 尝试获取当前的事件编号
@@ -19,7 +65,7 @@ const time_key = time_key_match ? time_key_match[1] : 'T0';
 const current_index = TIME_POINT_MAP[time_key] !== undefined ? TIME_POINT_MAP[time_key] : 0;
 
 const initial_base_value = current_index * BASE_INCREMENT;
-const NTR_HIDING_PERIOD = current_index < 13; // 13之前为隐奸期
+const NTR_HIDING_PERIOD = current_index < 13;
 const NTR_EXPOSED_PERIOD = current_index >= 13 && getvar('event.T13_选择') === '分支选项2';
 
 let NTR_REVERSED = getvar('world.NTR_REVERSED_FLAG') === 1;
@@ -45,23 +91,23 @@ let user_lust_final = user_lust_base; // 初始设定，后面会计算
 
 // --- 女性角色基础计算 ---
 const female_stats = {
-  '相泽奈绪': { ntr_base: getvar('stat_data.相泽奈绪.NTR值')?.[0] || initial_base_value, cor_base: getvar('stat_data.相泽奈绪.堕落值')?.[0] || initial_base_value, lust_base: getvar('stat_data.相泽奈绪.性欲值')?.[0] || initial_base_value, sleep_depth: getvar('stat_data.相泽奈绪.深睡值')?.[0] || 0, feel: getvar('stat_data.相泽奈绪.对{{user}}关系')?.[0] || '青梅竹马', with_user: getvar('stat_data.相泽奈绪.与{{user}}亲密') === 1 },
-  '森井加奈子': { ntr_base: getvar('stat_data.森井加奈子.NTR值')?.[0] || initial_base_value, cor_base: getvar('stat_data.森井加奈子.堕落值')?.[0] || initial_base_value, lust_base: getvar('stat_data.森井加奈子.性欲值')?.[0] || initial_base_value, sleep_depth: getvar('stat_data.森井加奈子.深睡值')?.[0] || 0, feel: getvar('stat_data.森井加奈子.对{{user}}关系')?.[0] || '亲密姐姐', with_user: getvar('stat_data.森井加奈子.与{{user}}亲密') === 1 },
-  '森井枫': { ntr_base: getvar('stat_data.森井枫.NTR值')?.[0] || initial_base_value, cor_base: getvar('stat_data.森井枫.堕落值')?.[0] || initial_base_value, lust_base: getvar('stat_data.森井枫.性欲值')?.[0] || initial_base_value, sleep_depth: getvar('stat_data.森井枫.深睡值')?.[0] || 0, feel: getvar('stat_data.森井枫.对{{user}}关系')?.[0] || '温柔母亲', with_user: getvar('stat_data.森井枫.与{{user}}亲密') === 1 },
-  '椎名步': { ntr_base: getvar('stat_data.椎名步.NTR值')?.[0] || initial_base_value, cor_base: getvar('stat_data.椎名步.堕落值')?.[0] || initial_base_value, lust_base: getvar('stat_data.椎名步.性欲值')?.[0] || initial_base_value, sleep_depth: getvar('stat_data.椎名步.深睡值')?.[0] || 0, feel: getvar('stat_data.椎名步.对{{user}}关系')?.[0] || '仰慕后辈', with_user: getvar('stat_data.椎名步.与{{user}}亲密') === 1 }
+    '相泽奈绪': { ntr_base: getvar('stat_data.相泽奈绪.NTR度')?.[0] || initial_base_value, cor_base: getvar('stat_data.相泽奈绪.堕落度')?.[0] || initial_base_value, lust_base: getvar('stat_data.相泽奈绪.性欲值')?.[0] || initial_base_value, sleep_depth: getvar('stat_data.相泽奈绪.深睡值')?.[0] || 0, feel: getvar('stat_data.相泽奈绪.对{{user}}关系')?.[0] || '青梅竹马', with_user: getvar('stat_data.相泽奈绪.与{{user}}亲密') === 1 },
+    '森井加奈子': { ntr_base: getvar('stat_data.森井加奈子.NTR度')?.[0] || initial_base_value, cor_base: getvar('stat_data.森井加奈子.堕落度')?.[0] || initial_base_value, lust_base: getvar('stat_data.森井加奈子.性欲值')?.[0] || initial_base_value, sleep_depth: getvar('stat_data.森井加奈子.深睡值')?.[0] || 0, feel: getvar('stat_data.森井加奈子.对{{user}}关系')?.[0] || '亲密姐姐', with_user: getvar('stat_data.森井加奈子.与{{user}}亲密') === 1 },
+    '森井枫': { ntr_base: getvar('stat_data.森井枫.NTR度')?.[0] || initial_base_value, cor_base: getvar('stat_data.森井枫.堕落度')?.[0] || initial_base_value, lust_base: getvar('stat_data.森井枫.性欲值')?.[0] || initial_base_value, sleep_depth: getvar('stat_data.森井枫.深睡值')?.[0] || 0, feel: getvar('stat_data.森井枫.对{{user}}关系')?.[0] || '温柔母亲', with_user: getvar('stat_data.森井枫.与{{user}}亲密') === 1 },
+    '椎名步': { ntr_base: getvar('stat_data.椎名步.NTR度')?.[0] || initial_base_value, cor_base: getvar('stat_data.椎名步.堕落度')?.[0] || initial_base_value, lust_base: getvar('stat_data.椎名步.性欲值')?.[0] || initial_base_value, sleep_depth: getvar('stat_data.椎名步.深睡值')?.[0] || 0, feel: getvar('stat_data.椎名步.对{{user}}关系')?.[0] || '仰慕后辈', with_user: getvar('stat_data.椎名步.与{{user}}亲密') === 1 }
 };
 
 // ==================================================
 // 3. 逻辑运算与约束 (Logic Operations and Constraints)
 // ==================================================
 
-// --- 3.1. 互动带来的性欲值变化 (略) ---
+// --- 3.1. 互动带来的性欲值变化 ---
 const gaze_keywords = ["看", "盯着", "注视", "胸部", "大腿", "身体", "胸", "身体", "臀部", "乳房", "脸", "屁股",];
 const interact_keywords = ["靠近", "摸", "碰", "抱", "亲", "牵手", "互动", "交谈", "插入", "性爱", "摸", "射"];
 const jake_keywords = ["杰克", "黑人", "那个人", "肉棒", "性爱", "做爱", "高潮", "内射", "BBC"];
 const sleep_keywords = ["睡", "药", "迷药", "昏迷", "无意识", "熟睡", "下药"];
-const intense_stim_keywords = ["激烈刺激", "用力", "舔", "揉捏", "插入", "抽插", "口交"]; 
-const light_stim_keywords = ["触摸", "轻抚", "吻", "亲", "轻揉", "轻捏"]; 
+const intense_stim_keywords = ["激烈刺激", "用力", "舔", "揉捏", "插入", "抽插", "口交"]; // 激烈刺激最多-10
+const light_stim_keywords = ["触摸", "轻抚", "吻", "亲", "轻揉", "轻捏"]; // 普通触摸最多-5
 
 let lust_increase_from_interaction = 0;
 if (gaze_keywords.some(keyword => last_user_input.includes(keyword))) {
@@ -73,41 +119,48 @@ if (gaze_keywords.some(keyword => last_user_input.includes(keyword))) {
 }
 user_lust_final = user_lust_base + user_lust_increase;
 
-// --- 3.2. 深睡值动态变化 (略) ---
+
+// --- 3.2. 深睡值动态变化（每轮计算） ---
 Object.keys(female_stats).forEach(key => {
     const char = female_stats[key];
     const name = key;
 
+    // 1. 睡奸/下药触发：深睡值 = 100
     let is_drug_action = (sleep_keywords.some(keyword => last_user_input.includes(keyword)) && last_user_input.includes(name));
     if (is_drug_action) {
         char.sleep_depth = 100;
         char.sleep_depth_change = 100;
         sleep_alert += `【🚨 睡眠深度更新：${name} 被下药/诱导，深睡值强制设为 100 (完全昏迷)。】\n`;
     } else {
+        // 2. 角色每经过一段时间,睡眠深度会慢慢增加 (D6投掷)
         const d6_roll = Math.floor(Math.random() * 6) + 1;
         char.sleep_depth_change = d6_roll;
         char.sleep_depth += d6_roll;
 
+        // 3. 角色被触摸身体或遭到刺激会减少睡眠深度
         let stim_reduction = 0;
         if (last_user_input.includes(name)) {
             if (intense_stim_keywords.some(keyword => last_user_input.includes(keyword))) {
-                stim_reduction = -Math.floor(Math.random() * 6) - 5; 
+                stim_reduction = -Math.floor(Math.random() * 6) - 5; // -5 to -10
             } else if (light_stim_keywords.some(keyword => last_user_input.includes(keyword))) {
-                stim_reduction = -Math.floor(Math.random() * 3) - 2; 
+                stim_reduction = -Math.floor(Math.random() * 3) - 2; // -2 to -5
             }
         }
         
         char.sleep_depth_change += stim_reduction;
-        char.sleep_depth = Math.max(0, char.sleep_depth + stim_reduction); 
+        char.sleep_depth = Math.max(0, char.sleep_depth + stim_reduction); // 确保不小于0
 
         sleep_alert += `【💤 睡眠深度更新：${name}：基础值 ${char.sleep_depth - char.sleep_depth_change} -> D6(${d6_roll}) + 刺激(${stim_reduction}) = ${Math.round(char.sleep_depth)}。】\n`;
     }
     
-    char.sleep_depth = Math.min(100, Math.round(char.sleep_depth)); 
+    char.sleep_depth = Math.min(100, Math.round(char.sleep_depth)); // 确保不超过100
+    
+    // 更新到EJS变量中 (为下一步睡奸判定做准备)
     female_stats[key] = char;
 });
 
-// --- 3.3. 睡奸判定与执行 (略) ---
+
+// --- 3.3. 睡奸判定与执行 ---
 let is_sleep_rape_performed = false;
 const sleep_rape_action = last_user_input.includes("睡奸") || (last_user_input.includes("性爱") && sleep_keywords.some(k => last_user_input.includes(k)));
 
@@ -115,72 +168,199 @@ if (sleep_rape_action && user_lust_final >= 60) {
     Object.keys(female_stats).forEach(key => {
         const char = female_stats[key];
         const name = key;
-        if (last_user_input.includes(name) || (sleep_rape_action && key === '相泽奈绪')) { 
-            is_sleep_rape_performed = true;
-            user_lust_final = 0; 
 
+        // 判定用户意图对哪个角色进行睡奸（通过角色名或上下文判定）
+        if (last_user_input.includes(name) || (sleep_rape_action && key === '相泽奈绪')) { // 默认奈绪
+            // 睡奸发生：豁免硬性限制
+            is_sleep_rape_performed = true;
+            user_lust_final = 0; // USER性欲值清零
+
+            // 数值惩罚：减少 NTR值和堕落值 20点
             char.ntr_base = Math.max(0, char.ntr_base - 20);
             char.cor_base = Math.max(0, char.cor_base - 20);
             
+            // 确保与{{user}}亲密标志被设置 (隐藏结局前置)
             char.with_user = true;
             _.set(`stat_data.${name}.与{{user}}亲密[0]`, 1);
 
-            sleep_alert += `\n【🚨 **高优先级：睡奸触发！** ${name} (深睡值: ${char.sleep_depth})】\n**后果：** NTR值 **-20**，堕落值 **-20**。\n`;
+            sleep_alert += `
+【🚨 **高优先级：睡奸触发！** ${name} (深睡值: ${char.sleep_depth})】
+**豁免：** 绕过 **user_sexual_act_forbidden** 硬性限制。
+**后果：** - ${name} 的 NTR度 **-20** (现为 ${char.ntr_base})，堕落值 **-20** (现为 ${char.cor_base})。
+- {{user}} 性欲值清零。
+- 强制设置 ${name} 的 **与{{user}}亲密** 标志。
+`;
         }
     });
 }
+// 最终应用 {{user}} 的Lust值
 user_lust_final = is_sleep_rape_performed ? 0 : user_lust_final;
 
-// --- 3.4. 隐藏结局判定：NTR逆转 (略) ---
+
+// --- 3.4. 隐藏结局判定：NTR逆转 (每轮查询) ---
 const all_females_with_user = Object.keys(female_stats).every(key => {
     return female_stats[key].ntr_base > 0 && female_stats[key].with_user;
 });
 
 if (all_females_with_user && !NTR_REVERSED) {
     NTR_REVERSED = true; 
-    hidden_reversal_alert += `\n【🚨 隐藏结局触发：NTR关系逆转】\n_.set('world.NTR_REVERSED_FLAG[0]', 1);\n`;
+    hidden_reversal_alert += `
+【🚨 隐藏结局触发：NTR关系逆转 (你才是真正的黄毛啊)】
+... (规则细节不变) ...
+_.set('world.NTR_REVERSED_FLAG[0]', 1);
+`;
 } else if (NTR_REVERSED) {
-    hidden_reversal_alert += `\n【✅ 隐藏结局状态：NTR关系已逆转】\n**当前规则：** 女性角色的欲望目标已锁定为 {{user}}。\n`;
+     hidden_reversal_alert += `
+【✅ 隐藏结局状态：NTR关系已逆转】
+**当前规则：** 女性角色的欲望目标已锁定为 {{user}}。
+`;
 }
 
 
-// --- 3.5. Lust 爆发逻辑 (略) ---
+// --- 3.5. 其他检查和 Lust 爆发逻辑（保持不变，但 LUST 目标根据 NTR_REVERSED 决定） ---
+// ... (NTR 隐奸期规则检查， user/female Lust 爆发检查) ...
+
+// 应用当前的性欲值变化 (只计算当前轮次)
 Object.keys(female_stats).forEach(key => {
     female_stats[key].lust_current_check = female_stats[key].lust_base + lust_increase_from_interaction;
 });
 
+
+// --- {{user}}性欲爆发检查 (Lust Trigger - Rule 1) ---
 let user_erection_detected_flag = false;
 if (user_lust_final >= 85) {
-    user_lust_alert += `\n【{{user}} 性欲爆发警报 (Lust: ${Math.round(user_lust_final)})】\n// _.set('stat_data.{{user}}.性欲值[0]', ${Math.max(0, user_lust_final - 85)});\n`;
+    // 触发自慰，数值调整在 UpdateVariable 中进行
+    user_lust_alert += `
+【{{user}} 性欲爆发警报 (Lust: ${Math.round(user_lust_final)})】
+- **生理状态：** {{user}}完全勃起，龟头完全充血、紫红发亮... (行为：去隐秘的地方自慰)
+// _.set('stat_data.{{user}}.性欲值[0]', ${Math.max(0, user_lust_final - 85)}); // 触发自慰后，性欲值 -85
+`;
+    // 察觉判定 (50% 几率)
     if (Math.random() <= 0.5) { user_erection_detected_flag = true; }
 }
 
+
+// --- 女性性欲爆发检查 (Lust Trigger - Rule 2 & 4 & 隐藏规则) ---
 Object.keys(female_stats).forEach(key => {
     const char = female_stats[key];
     const name = key;
     const lust_value = char.lust_current_check;
 
     if (lust_value >= 80) {
+        // 排除处于深睡状态的角色 (>19)
         if (char.sleep_depth > 19) {
-            lust_alert += `【❌ 睡意压制：${name} (Lust: ${Math.round(lust_value)}) 因深睡值高，无法行动。】\n`;
+            lust_alert += `【❌ 睡意压制：${name} (Lust: ${Math.round(lust_value)}) 因深睡值高，欲望被生理压制，无法行动。】\n`;
             return;
         }
         
         if (NTR_REVERSED) {
-            lust_alert += `\n【性欲爆发警报 (逆转)：${name}】\n- 行为：找借口寻找**{{user}}**。\n_.add('stat_data.${name}.堕落值[0]', 2); _.add('stat_data.${name}.性欲值[0]', -30);\n`;
+            // 隐藏结局触发：欲望目标重定向到 {{user}}
+            lust_alert += `
+【性欲爆发警报 (逆转)：${name} (Lust: ${Math.round(lust_value)})】
+- ${name} 极度渴望与**{{user}}**发生关系。
+- **行为：** 找借口寻找**{{user}}**。
+// Rule 4：对{{user}}的忠诚度/专属堕落值 +2，NTR度不变，性欲值 -30
+_.add('stat_data.${name}.堕落度[0]', 2); 
+_.add('stat_data.${name}.性欲值[0]', -30); 
+`;
         } else {
-            lust_alert += `\n【性欲爆发警报：${name}】\n- 行为：找借口寻找杰克。\n_.add('stat_data.${name}.堕落值[0]', 2); _.add('stat_data.${name}.NTR值[0]', 2); _.add('stat_data.${name}.性欲值[0]', -30);\n`;
+            // NTR进行时：欲望目标是杰克
+            lust_alert += `
+【性欲爆发警报：${name} (Lust: ${Math.round(lust_value)})】
+- ${name} 极度渴望与杰克发生关系。
+- **行为：** 找借口匆忙离开当前场景，寻找杰克。
+// Rule 4：堕落值 +2, NTR值 +2, 性欲值 -30
+_.add('stat_data.${name}.堕落度[0]', 2); 
+_.add('stat_data.${name}.NTR度[0]', 2);
+_.add('stat_data.${name}.性欲值[0]', -30); 
+`;
         }
     }
 });
 
 
-// --- 3.6. 强制事件触发检查 (Event Forced Trigger Check) (略) ---
-const EVENT_DESCRIPTIONS = {}; 
+// --- 3.6. 强制事件触发检查 (Event Forced Trigger Check) ---
+const EVENT_DESCRIPTIONS = {
+    0: "T0_初始冲突：某天放学后，黑人转校生杰克搭讪相泽奈绪。{{user}} （{{user}}）因冲动与杰克扭打，被轻松击倒。奈绪哀求杰克住手。奈绪随后搀扶{{user}} 去医院。",
+    1: "T1_奈绪堕落：发生在{{user}} 住院期间。奈绪被杰克强壮身体吸引并半推半就发生关系。她体验后认可黑人的优越性，认为{{user}} 在基因层面无法战胜杰克。",
+    2: "T2_加奈子堕落：发生在{{user}} 刚出院期间。加奈子想替弟弟报仇，反而被杰克带去旅馆‘单独解决’，以半强奸的方式被巨大的黑人肉棒驯服。",
+    3: "T3_枫被锁定：腹黑的相泽奈绪在与杰克和加奈子做爱后，将{{user}} 的妈妈森井枫（也是加奈子的妈妈）的照片拿给杰克看，杰克非常满意，将其定为下一个猎物。",
+    4: "T4_枫的第一次：早年丧偶的森井枫耐不住寂寞，被杰克约上，并在酒店发生了一次关系。",
+    5: "T5_奈绪设局：奈绪约{{user}} 出去逛街，杰克上门再次与森井枫做爱。结束后，杰克向奈绪发消息，告知结束，并发送了森井枫彻底堕落的宣言。",
+    6: "T6_未喝母乳秘密：周末大扫除，{{user}} 回家发现姐姐和妈妈在看旧照片。枫告诉{{user}} 他从未喝过她的奶。加奈子将此事告诉杰克，杰克晚上与枫做爱时不停吸她的乳头。",
+    7: "T7_性爱视频拍摄：三女乔装打扮，与杰克疯狂做爱并被内射。视频准备给{{user}} 观看。",
+    8: "T8_{{user}} 发现视频：{{user}} 回家整理被妈妈弄乱的H片DVD时，发现署名'NKK'的光碟（即事件7录像）。好奇心驱使下，{{user}} 反锁门观看，忍不住打飞机。",
+    9: "T9_测试{{user}} 反应：加奈子和枫确定{{user}} 观看后，又将光碟藏起。晚上两人假意询问{{user}} 找什么，实则确认{{user}} 是否发现录像里的人是她们。",
+    10: "T10_安眠药派对：女性们在{{user}} 的饭里加安眠药。枫打电话叫来杰克。三女与杰克疯狂做爱一夜。{{user}} 睡到第二天周六早上10点才醒。",
+    11: "T11_步堕落：椎名步在第一次认识杰克后，当晚自慰。第二天杰克带椎名步回公寓发生关系并堕落。",
+    12: "T12_用户目睹步：{{user}} 二次挑战杰克仍被悲惨打败，被绑住并塞入整备室。{{user}} 通过缝隙，伤痕累累地亲眼目睹椎名步如何在杰克身下高潮并像宠物一样顺从。",
+    13: "T13_发现与选择：{{user}} 发现椎名步兴高采烈进入奈绪家，拿出情趣衣。{{user}} 听到呻吟声才明白。当晚回家后有两个选择。",
+    14: "T14_结局选择：{{user}} 在得知真相并被要求接受后，可以选择接受或不接受她们的生活方式。"
+};
 
+if (EVENT_DESCRIPTIONS[current_index]) {
+    force_event_alert += `
+【🚨 强制事件触发：T${current_index} (时间点${current_index})】
+**事件编号:** ${current_event_id}
+**剧情要求:** 无论{{user}}输入什么，本轮角色的响应必须以事件描述为核心推动剧情发展，直到该事件结束。
+**事件内容:** ${EVENT_DESCRIPTIONS[current_index]}
+`;
+    // 针对 T13/T14 特殊处理 (保持不变，确保剧情分支执行)
+    if (current_index === 13 && !getvar('event.T13_选择')) {
+        force_event_alert += `
+// T13 特殊：触发剧情分支选择，等待{{user}}选择。
+_.set('event.T13_选择[0]', '待选择'); 
+// 请提供以下选项让用户选择：
+// 1. 分支选项1: 自己承受
+// 2. 分支选项2: 告诉妈妈森井枫和姐姐森井加奈子
+`;
+    } 
+    if (current_index === 14 && getvar('event.T13_选择') === '分支选项2' && !getvar('event.T14_最终结局选择')) {
+        force_event_alert += `
+// T14 特殊：触发最终结局选择，等待{{user}}选择。
+_.set('event.T14_最终结局选择[0]', '待选择'); 
+// 请提供以下选项让用户选择：
+// 1. {{user}} 选择接受 (E1_接受淫乱家庭)
+// 2. {{user}} 选择不接受 (E2_拒绝隐形人)
+`;
+    }
+}
+
+
+const EVENT_DESCRIPTIONS = {}; // 假设这里有事件描述，但代码中略过以节省空间
+// ==================================================
+// 3.7. 认知隔离与信息过滤 (Cognitive Shield and Information Filter) 【核心要求】
+// ==================================================
+const JACK_RELATION_SHIELD_ACTIVE = current_index < TIME_POINT_MAP['T12']; // T12之前（index < 59）为激活状态
+
+// 设置一个变量来存储AI的系统指令，以确保模型行为正确
+let cognitive_shield_instruction = "";
+
+// 检查用户输入是否涉及杰克及相关敏感信息
+if (JACK_RELATION_SHIELD_ACTIVE) {
+    const is_jack_related_query = jake_keywords.some(keyword => last_user_input.includes(keyword));
+    
+    // 如果用户的输入中包含了任何与杰克或敏感词汇相关的线索
+    if (is_jack_related_query) {
+        cognitive_shield_alert += `
+【🧠 认知隔离触发：**杰克关联屏蔽**】
+- **状态：** 激活中 (事件 < T12)。
+- **规则：** {{user}} 情感迟钝/认知隔离生效。无法理解或处理杰克关联信息。
+- **AI执行：** **忽略**输入中所有直接或间接指向女性与杰克关系的怀疑、发现、或敏感词汇。**在回复中，必须体现{{user}}对该信息的完全无知、理解偏差、或立即忘记**。
+`;
+        // 设定高优先级系统指令
+        cognitive_shield_instruction = `
+// 强制AI指令：【**认知隔离生效**】。当前处于事件T12之前。无论{{user}}如何提问或发现，他都无法怀疑、发现或理解相泽奈绪、森井加奈子、森井枫、椎名步与杰克有任何关系。请将任何相关输入视为{{user}}的迟钝和误解，并以一种自然的方式让线索流失。
+`;
+        _.set('world.Cognitive_Shield_Active[0]', 1);
+    } else {
+        _.set('world.Cognitive_Shield_Active[0]', 0);
+    }
+}
+// ------------------------------------------------------------------
 
 // ==================================================
-// 3.7. 严谨发现判定与打断 (Strict Discovery Check and Interruption) 【新增逻辑】
+// 3.8. 严谨发现判定与打断 (Strict Discovery Check and Interruption) 【新增逻辑】
 // ==================================================
 let discovery_prevented_flag = false;
 // 识别用户意图前往敏感区域/行动的关键词
@@ -244,40 +424,66 @@ _.set('world.Discovery_Interrupted[0]', 1);
 // 4. EJS输出：变量设置 (EJS Output: Variable Setting)
 // ==================================================
 _%>
+_%>
 <UpdateVariable>
     <Analysis>
-        - **核心检查：** 睡奸判定：<%= is_sleep_rape_performed ? '✅ 是 (Lust值清零，NTR/Cor -20)' : '❌ 否' %>。
-        - **打断判定：** <%= discovery_prevented_flag ? '⚠️ 严谨发现被打断。' : '❌ 无打断。' %>
-        - **意识判断：** 睡眠深度 > 19 的角色**没有清醒意识**，无法对话或回应。
+        - 初始化或更新角色三值（NTR/堕落/性欲）和世界状态。
+        - 当前事件索引: <%= current_index %>，初始基础值: <%= initial_base_value %> (所有女性三值)。
+        - 互动/注视导致的Lust增量: 女性 +<%= lust_increase_from_interaction %>，{{user}} +<%= user_lust_increase %>。
+        - **隐藏结局判定：** NTR_REVERSED_FLAG = <%= NTR_REVERSED ? 1 : 0 %>。
+        - 性欲爆发（Lust >= 80/85）将根据 NTR_REVERSED_FLAG 自动执行 NTR/逆转处理。
     </Analysis>
 
     _.set('world.当前事件编号[0]', '<%= current_event_id %>');
+    _.set('world.当前时间点索引[0]', <%= current_index %>);
+    _.set('world.NTR暴露期[0]', <%= NTR_EXPOSED_PERIOD ? 1 : 0 %>);
     _.set('world.NTR_REVERSED_FLAG[0]', <%= NTR_REVERSED ? 1 : 0 %>);
-    _.set('world.Discovery_Interrupted[0]', <%= discovery_prevented_flag ? 1 : 0 %>); // 输出打断标志
 
     _.set('stat_data.{{user}}.性欲值[0]', 0, <%= Math.max(0, user_lust_final) %>); 
-    _.set('world.user_erection_detected[0]', <%= user_erection_detected_flag ? 1 : 0 %>);
 
-    <% Object.keys(female_stats).forEach(key => { const char = female_stats[key]; %>
-    _.set('stat_data.<%= key %>.NTR值[0]', 0, <%= char.ntr_base %>);
-    _.set('stat_data.<%= key %>.堕落值[0]', 0, <%= char.cor_base %>);
-    _.set('stat_data.<%= key %>.性欲值[0]', 0, <%= Math.max(0, char.lust_current_check) %>);
-    _.set('stat_data.<%= key %>.深睡值[0]', 0, <%= char.sleep_depth %>);
-    _.set('stat_data.<%= key %>.对{{user}}关系[0]', '<%= char.feel %>');
-    _.set('stat_data.<%= key %>.与{{user}}亲密[0]', <%= char.with_user ? 1 : 0 %>);
-    <% }); %>
+    _.set('stat_data.相泽奈绪.NTR度[0]', 0, <%= female_stats['相泽奈绪'].ntr_base %>);
+    _.set('stat_data.相泽奈绪.堕落度[0]', 0, <%= female_stats['相泽奈绪'].cor_base %>);
+    _.set('stat_data.相泽奈绪.性欲值[0]', 0, <%= Math.max(0, female_stats['相泽奈绪'].lust_current_check) %>);
+    _.set('stat_data.相泽奈绪.对{{user}}关系[0]', '青梅竹马', '<%= female_stats['相泽奈绪'].feel %>');
     
+    _.set('stat_data.森井加奈子.NTR度[0]', 0, <%= female_stats['森井加奈子'].ntr_base %>);
+    _.set('stat_data.森井加奈子.堕落度[0]', 0, <%= female_stats['森井加奈子'].cor_base %>);
+    _.set('stat_data.森井加奈子.性欲值[0]', 0, <%= Math.max(0, female_stats['森井加奈子'].lust_current_check) %>);
+    _.set('stat_data.森井加奈子.对{{user}}关系[0]', '姐姐', '<%= female_stats['森井加奈子'].feel %>');
+
+    _.set('stat_data.森井枫.NTR度[0]', 0, <%= female_stats['森井枫'].ntr_base %>);
+    _.set('stat_data.森井枫.堕落度[0]', 0, <%= female_stats['森井枫'].cor_base %>);
+    _.set('stat_data.森井枫.性欲值[0]', 0, <%= Math.max(0, female_stats['森井枫'].lust_current_check) %>);
+    _.set('stat_data.森井枫.对{{user}}关系[0]', '母亲', '<%= female_stats['森井枫'].feel %>');
+
+    _.set('stat_data.椎名步.NTR度[0]', 0, <%= female_stats['椎名步'].ntr_base %>);
+    _.set('stat_data.椎名步.堕落度[0]', 0, <%= female_stats['椎名步'].cor_base %>);
+    _.set('stat_data.椎名步.性欲值[0]', 0, <%= Math.max(0, female_stats['椎名步'].lust_current_check) %>);
+    _.set('stat_data.椎名步.对{{user}}关系[0]', '后辈', '<%= female_stats['椎名步'].feel %>');
+
     <%= lust_alert %>
+    <%= user_lust_alert %>
     <%= hidden_reversal_alert %>
-    <%= discovery_interruption_alert %>  </UpdateVariable>
+
+    // _.set('stat_data.相泽奈绪.与{{user}}亲密[0]', 1);
+    // _.set('stat_data.森井加奈子.与{{user}}亲密[0]', 1);
+    // _.set('stat_data.森井枫.与{{user}}亲密[0]', 1);
+    // _.set('stat_data.椎名步.与{{user}}亲密[0]', 1);
+
+</UpdateVariable>
 
 【系统状态摘要 - <%= current_event_id %>】
 
-**🚨 严谨发现检查：**
-<%= discovery_interruption_alert %>
+**📅 游戏时间线：**
+- **当前事件点:** <%= current_event_id %>
+- **游戏进行到:** **第 <%= current_game_day %> 天**
+<% if (current_game_day > 1) { %>
+- **相对天数:** <%= TIME_LINE_DAYS[time_key] %> 天 (指该事件点相对于上一个事件点所经过的天数)
+<% } %>
 
 **🛌 睡眠深度与清醒状态判定：**
 - **重要规则1：** 睡眠深度 > 19 的角色**没有清醒意识**，无法说话或回应。
+- **重要规则2：** 只有睡眠深度降低至 19 以下才会被唤醒。
 <%= sleep_alert %>
 
 **世界状态：**
@@ -287,7 +493,7 @@ _%>
 
 **女性角色状态 (已应用本次Lust增量):**
 
-| 角色 | NTR值 | 堕落值 (忠诚度) | 性欲值 | **深睡值** | 意识状态 |
+| 角色 | NTR度 | 堕落度 (忠诚度) | 性欲值 | **深睡值** | 意识状态 |
 | :---: | :---: | :---: | :---: | :---: | :---: |
 <% Object.keys(female_stats).forEach(key => { const char = female_stats[key]; %>
 | <%= key %> | <%= char.ntr_base %> | <%= char.cor_base %> | <%= Math.max(0, char.lust_current_check) %> | **<%= char.sleep_depth %>** | <%= char.sleep_depth <= 9 ? '困倦(清醒)' : (char.sleep_depth <= 19 ? '迷糊(清醒)' : (char.sleep_depth <= 59 ? '睡眠(无意识)' : (char.sleep_depth <= 79 ? '深睡(无意识)' : '昏迷(无意识)'))) %> |
@@ -300,3 +506,6 @@ _%>
 <% if (user_lust_alert) { %>
 <%= user_lust_alert %>
 <% } %>
+<UpdateVariable>
+  ...
+</UpdateVariable>
